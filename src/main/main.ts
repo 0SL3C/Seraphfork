@@ -10,6 +10,7 @@ import { TerminalManager } from './TerminalManager';
 import { WindowManager } from './windowManager';
 import log from 'electron-log/main';
 import { exec } from 'node:child_process';
+import os from 'os';
 
 let terminalManager: TerminalManager;
 let windowManager: WindowManager;
@@ -82,6 +83,38 @@ app.whenReady().then(() => {
         resolve(containers);
       });
     });
+  });
+
+  // TODO: MacOS / Windows => Check if docker desktop is running and there's enough permissions
+  // Check if user is in the docker group
+  ipcMain.handle('docker:checkEnvironment', async () => {
+    const user = os.userInfo().username;
+    let inDockerGroup = false;
+    try {
+      const { stdout } = await import('node:child_process').then(({ execSync }) => ({
+        stdout: execSync(`groups ${user}`).toString()
+      }));
+      inDockerGroup = stdout.split(/\s+/).includes('docker');
+    } catch {
+      inDockerGroup = false;
+    }
+    // Set docker context to default if not already
+    let contextSwitched = false;
+    let currentContext = '';
+    try {
+      currentContext = await import('node:child_process').then(({ execSync }) =>
+        execSync('docker context show').toString().trim()
+      );
+      if (currentContext !== 'default') {
+        await import('node:child_process').then(({ execSync }) =>
+          execSync('docker context use default')
+        );
+        contextSwitched = true;
+      }
+    } catch {
+      // ignore errors
+    }
+    return { inDockerGroup, contextSwitched, currentContext };
   });
 
   mainWindow.on('maximize', () => {

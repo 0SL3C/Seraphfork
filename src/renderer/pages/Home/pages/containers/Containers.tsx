@@ -11,6 +11,7 @@ function Containers() {
   const [containers, setContainers] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [envError, setEnvError] = useState<string | null>(null);
 
   const fetchContainers = async () => {
     setLoading(true);
@@ -26,7 +27,16 @@ function Containers() {
   };
 
   useEffect(() => {
-    fetchContainers();
+    // Check environment on mount
+    window.docker.checkEnvironment().then(env => {
+      if (!env.inDockerGroup) {
+        setEnvError(
+          "You are not in the 'docker' group. Please add your user to the docker group and restart your session:\n\nsudo usermod -aG docker $USER"
+        );
+      } else {
+        fetchContainers();
+      }
+    });
   }, []);
 
   return (
@@ -39,17 +49,7 @@ function Containers() {
         </Button>
       </div>
 
-      {error && (
-        <div style={{ color: 'red', marginBottom: '1em' }}>
-          Error: {error}
-          <br />
-          <button onClick={fetchContainers} disabled={loading}>
-            {loading ? 'Retrying...' : 'Try Again'}
-          </button>
-        </div>
-      )}
-      {!error && loading && <div>Loading...</div>}
-      {!error && !loading && containers.length === 0 && <div>No dockers running</div>}
+      {error}
 
       <div className="space-y-4">
         {containers.map(container => (
