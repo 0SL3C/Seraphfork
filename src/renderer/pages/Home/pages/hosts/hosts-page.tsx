@@ -7,91 +7,26 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import SelectedHostConfigDrawer from './selected-host-config-drawer';
-import { useAppDispatch } from '@/app/hooks';
+import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { createTab } from '@/features/terminalTabs/terminalTabsSlice';
-
-const mockHostConfig: HostConfig = {
-  id: '1',
-  label: 'Localhost',
-  host: 'localhost',
-  port: 3000,
-  username: 'user',
-  password: 'password',
-  source: 'manual'
-};
+import { selectHostConfigs } from '@/features/config/configSlice';
 
 export default function HostsPage() {
-  const [hostConfigs, setHostConfigs] = useState<HostConfig[]>([mockHostConfig]);
+  const hostConfigs = useAppSelector(selectHostConfigs);
   const [selectedHostConfig, setSelectedHostConfig] = useState<HostConfig>();
-  const [loading, setLoading] = useState(true);
   const dispatch = useAppDispatch();
 
-  // Load SSH hosts on component mount
-  useEffect(() => {
-    async function loadSSHHosts() {
-      try {
-        const sshHosts = await window.ssh.readConfig();
-        const convertedHosts: HostConfig[] = sshHosts.map((sshHost, index) => ({
-          id: `ssh-${index}`,
-          label: sshHost.host,
-          host: sshHost.hostname || sshHost.host,
-          port: sshHost.port || 22,
-          username: sshHost.user,
-          source: 'ssh-config' as const,
-          identityFile: sshHost.identityFile,
-          configPath: sshHost.configPath
-        }));
-
-        setHostConfigs([mockHostConfig, ...convertedHosts]);
-      } catch (error) {
-        console.error('Failed to load SSH hosts:', error);
-        toast.error('Failed to load SSH configuration');
-        setHostConfigs([mockHostConfig]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadSSHHosts();
-  }, []);
-
   // TODO: Implement add host logic
-  function handleAddNewHost() {
-    setHostConfigs(prevHostConfigs => [
-      ...prevHostConfigs,
-      { ...mockHostConfig, id: (prevHostConfigs.length + 1).toString() } as HostConfig
-    ]);
-  }
+  function handleAddNewHost() {}
 
   // TODO: Implement delete host logic
   function handleDelete(hostConfig: HostConfig) {
-    setHostConfigs(prevHostConfigs => prevHostConfigs.filter(h => h.id !== hostConfig.id));
     toast.success(`Deleted host ${hostConfig.label}`);
   }
 
-  // Update connect logic
-  async function handleConnect(hostConfig: HostConfig) {
-    try {
-      if (hostConfig.source === 'ssh-config') {
-        const result = await window.ssh.connect(hostConfig);
-        if (result.success && result.sessionId) {
-          // Create a new terminal tab for the SSH connection
-          dispatch(
-            createTab({
-              name: `SSH: ${hostConfig.label}`,
-              sessionId: result.sessionId
-            })
-          );
-          toast.success(`Connected to ${hostConfig.label}`);
-        }
-      } else {
-        // Handle manual connections (existing logic)
-        toast.success(`Connecting to ${hostConfig.label}...`);
-      }
-    } catch (error) {
-      console.error('Connection failed:', error);
-      toast.error(`Failed to connect to ${hostConfig.label}`);
-    }
+  // TODO: Implement connect logic
+  function handleConnect(hostConfig: HostConfig) {
+    dispatch(createTab({ type: 'ssh', name: hostConfig.label, hostId: hostConfig.id }));
   }
 
   // TODO: Implement edit host logic

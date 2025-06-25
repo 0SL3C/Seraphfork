@@ -9,9 +9,7 @@ import started from 'electron-squirrel-startup';
 import { TerminalManager } from './TerminalManager';
 import { WindowManager } from './windowManager';
 import log from 'electron-log/main';
-import { getHostsFromConfig } from './helpers';
-import { spawn } from 'child_process';
-import { HostConfig } from '@/dts/host-config';
+import { HostConfigManager } from './HostConfigManager';
 
 let terminalManager: TerminalManager;
 let windowManager: WindowManager;
@@ -59,7 +57,8 @@ app.whenReady().then(() => {
   terminalManager = new TerminalManager(mainWindow);
   windowManager = new WindowManager(mainWindow);
 
-  terminalManager.startListening();
+  HostConfigManager.init();
+  terminalManager.init();
   windowManager.startListening();
 
   ipcMain.handle('app:exit', () => {

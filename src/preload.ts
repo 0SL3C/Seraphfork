@@ -4,7 +4,9 @@ import { contextBridge, ipcRenderer } from 'electron/renderer';
 import { HostConfig } from './dts/host-config';
 
 contextBridge.exposeInMainWorld('terminal', {
-  createSession: (shellPath: string) => ipcRenderer.invoke('terminal:createSession', shellPath),
+  createLocalSession: (shellPath: string) =>
+    ipcRenderer.invoke('terminal:createLocalSession', shellPath),
+  createSSHSession: (hostId: string) => ipcRenderer.invoke('terminal:createSSHSession', hostId),
   resizeTerminal: (sessionId: string, cols: number, rows: number) =>
     ipcRenderer.invoke(`terminalSession-${sessionId}:resize`, cols, rows),
   terminateSession: (sessionId: string) =>
@@ -36,7 +38,9 @@ contextBridge.exposeInMainWorld('app', {
   isMacOS: () => process.platform === 'darwin'
 });
 
-contextBridge.exposeInMainWorld('ssh', {
-  readConfig: () => ipcRenderer.invoke('ssh:read-config'),
-  connect: (hostConfig: HostConfig) => ipcRenderer.invoke('ssh:connect', hostConfig)
+contextBridge.exposeInMainWorld('hosts', {
+  getAll: () => ipcRenderer.invoke('hosts:getAll'),
+  get: (id: string) => ipcRenderer.invoke('hosts:getById', id),
+  add: (host: HostConfig) => ipcRenderer.invoke('hosts:add', host),
+  remove: (id: string) => ipcRenderer.invoke('hosts:remove', id)
 });
